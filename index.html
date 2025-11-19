@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    <meta charset="UTF-8">
+    <title>Türk Devletleri Etki Alanları ve Hükümdarları</title>
+    <link rel="stylesheet" href="./style.css">
+
+  </head>
+    
+  <body>
+  <!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Türk Devletleri Haritası</title>
+    <link
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        crossorigin=""
+    />
+    <style>
+        html, body {
+            margin: 0; padding: 0; height: 100vh; width: 100vw;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+        }
+      .leaflet-control-zoom {
+    top: 75px !important;
+  }
+        #controls {
+            position: fixed;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1100;
+            background: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.3);
+            font-size: 16px;
+            text-align: center;
+        }
+        #map, #wiki {
+            height: 50vh;
+            width: 100vw;
+            box-sizing: border-box;
+        }
+        #map {
+            border-bottom: 2px solid #ccc;
+        }
+        #wiki iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
+        }
+        @media (min-width: 768px) {
+            body {
+                flex-direction: row;
+            }
+            #map, #wiki {
+                height: 100vh;
+                width: 50vw;
+            }
+            #map {
+                border-right: 2px solid #ccc;
+                border-bottom: none;
+            }
+            #controls {
+                left: 50px;
+                transform: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <label for="devletSelect">Tarihte Türk Devletleri'nin Etki Alanları - </label>
+        <label for="devletSelect">Devlet Seçin: </label>
+        <select id="devletSelect">
+             <option value="buyukHun">🏹 Büyük Hun İmparatorluğu (MÖ 220 - MS 46)</option>
+             <option value="avrupaHun">⚔️ Avrupa Hun İmparatorluğu (375 – 469)</option>
+             <option value="gokturk">🏹 Göktürk Kağanlığı (552 - 744)</option>
+             <option value="hazar">⚓ Hazar Kağanlığı (650 – 969)</option>
+             <option value="uygur">🏹 Uygur Kağanlığı (744 - 840)</option>
+             <option value="karahanli">⚔️ Karahanlılar (840 - 1212)</option>
+             <option value="gazneli">⚔️ Gazneliler (963 - 1186)</option>
+             <option value="buyukSelcuklu">⚔️ Büyük Selçuklu İmparatorluğu (1037 - 1194)</option>
+             <option value="harzemsah">⚔️ Harzemşahlar (1077 - 1231)</option>
+             <option value="anadoluSelcuklu">🏰 Anadolu Selçuklu Devleti (1077 - 1308)</option>
+             <option value="memluk">🛡️ Memlük Devleti (1250 – 1517)</option>
+             <option value="altinOrda">🛡️ Altın Orda Devleti (1242 - 1502)</option>
+             <option value="timur">🛡️ Timur İmparatorluğu (1370 - 1507)</option>
+             <option value="babur">🛡️ Babür İmparatorluğu (1526 - 1858)</option>
+             <option value="osmanli">🦅 Osmanlı İmparatorluğu (1299 - 1922)</option>
+             <!-- Diğer devletler buraya eklenebilir -->
+        </select>
+    </div>
+
+    <div id="map"></div>
+    <div id="wiki">
+        <iframe
+    id="wikiFrame"
+    src="https://tr.wikipedia.org/wiki/Vikipedi:Ana_Sayfa"
+    title="Wikipedia"
+    sandbox="allow-same-origin allow-scripts allow-popups"
+></iframe>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    <script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
+    <script>
+        const map = L.map('map').setView([40, 40], 3);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 18,
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Veri yapısı: Her devlet için
+        // boundaryPoints ve allPoints dizilerinde tam veri satırı: [Devlet, Şehir, Ülke, Açıklama, [lat,lng]]
+        const data_sinir_hatlari = {
+          buyukHun: {
+            boundaryPoints: [
+            
+    ["Büyük Hun İmparatorluğu", "Baykal Gölü", "Rusya", "Kuzey sınırı ve etki alanı", [53.50, 108.00]],
+    ["Büyük Hun İmparatorluğu", "Yenisey Nehri", "Rusya", "Kuzeybatıdaki yayılım", [55.00, 90.00]],
+    ["Büyük Hun İmparatorluğu", "Balkaş Gölü (Kuzey)", "Kazakistan", "Batıdaki coğrafi sınır ve yayılımın kuzey-batı noktası.", [47.5000, 75.0000]],
+    ["Büyük Hun İmparatorluğu", "Fergana Vadisi (Kuzey Ucu)", "Özbekistan/Kırgızistan", "Batı Türkistan'daki en uç etki/kontrol noktası.", [40.0000, 72.0000]],
+    ["Büyük Hun İmparatorluğu", "Issık Göl Çevresi", "Kırgızistan", "Batı yayılımında önemli doğal sınır ve etki alanı", [42.42, 77.25]], // Yeni Batı Konumu
+    ["Büyük Hun İmparatorluğu", "Tanrı Dağları (Tien Shan)", "Çin/Orta Asya", "Güney-Batı yayılımının önemli coğrafi engeli", [42.00, 80.00]], // Yeni Batı Konumu
+    ["Büyük Hun İmparatorluğu", "Tarım Havzası (Lop Nur)", "Çin", "Batı yayılımının güney noktası", [40.50, 90.50]],
+    ["Büyük Hun İmparatorluğu", "Kansu (Hexi Koridoru)", "Çin", "Güneybatı sınırı, İpek Yolu kontrol noktası", [39.00, 97.00]],
+    ["Büyük Hun İmparatorluğu", "Ordos", "Çin", "Güneydeki Çin ile sınır bölgesi", [39.61, 109.78]],
+    ["Büyük Hun İmparatorluğu", "Şansi (Sınır Hattı)", "Çin", "Güney Çin ile temas noktası", [37.00, 112.00]],
+    ["Büyük Hun İmparatorluğu", "Pingcheng (Datong)", "Çin", "Çin'e yapılan akınların önemli noktası", [40.09, 113.29]],
+    ["Büyük Hun İmparatorluğu", "Büyük Hingan Dağları", "Çin/Moğolistan", "Doğu sınırı ve doğal engel", [46.00, 120.00]],
+    ["Büyük Hun İmparatorluğu", "Amur Nehri Havzası", "Rusya/Çin", "Kuzeydoğu sınırı ve Mançurya'daki en uç yayılım noktası.", [50.0000, 125.0000]],
+],
+            allPoints: [
+    ["Büyük Hun İmparatorluğu", "Amur Nehri Havzası", "Rusya/Çin", "Kuzeydoğu sınırı ve Mançurya'daki en uç yayılım noktası.", [50.0000, 125.0000]],
+    ["Büyük Hun İmparatorluğu", "Balkaş Gölü (Kuzey)", "Kazakistan", "Batıdaki coğrafi sınır ve yayılımın kuzey-batı noktası.", [47.5000, 75.0000]],
+    ["Büyük Hun İmparatorluğu", "Fergana Vadisi (Kuzey Ucu)", "Özbekistan/Kırgızistan", "Batı Türkistan'daki en uç etki/kontrol noktası.", [40.0000, 72.0000]],
+    
+    ["Büyük Hun İmparatorluğu", "Baykal Gölü", "Rusya", "Kuzey sınırı ve etki alanı", [53.50, 108.00]],
+    ["Büyük Hun İmparatorluğu", "Yenisey Nehri", "Rusya", "Kuzeybatıdaki yayılım", [55.00, 90.00]],
+    ["Büyük Hun İmparatorluğu", "Altay Dağları", "Moğolistan/Çin", "Batı sınırı ve coğrafi engel", [48.99, 88.99]],
+    ["Büyük Hun İmparatorluğu", "Yedi Su (Jetisu) Bölgesi", "Kazakistan", "Batı Türkistan'a giriş kapısı ve kilit bölge", [44.00, 78.00]], // Yeni Batı Konumu
+    ["Büyük Hun İmparatorluğu", "Issık Göl Çevresi", "Kırgızistan", "Batı yayılımında önemli doğal sınır ve etki alanı", [42.42, 77.25]], // Yeni Batı Konumu
+    ["Büyük Hun İmparatorluğu", "Tanrı Dağları (Tien Shan)", "Çin/Orta Asya", "Güney-Batı yayılımının önemli coğrafi engeli", [42.00, 80.00]], // Yeni Batı Konumu
+    ["Büyük Hun İmparatorluğu", "Tarım Havzası (Lop Nur)", "Çin", "Batı yayılımının güney noktası", [40.50, 90.50]],
+    ["Büyük Hun İmparatorluğu", "Kansu (Hexi Koridoru)", "Çin", "Güneybatı sınırı, İpek Yolu kontrol noktası", [39.00, 97.00]],
+    ["Büyük Hun İmparatorluğu", "Ordos", "Çin", "Güneydeki Çin ile sınır bölgesi", [39.61, 109.78]],
+    ["Büyük Hun İmparatorluğu", "Şansi (Sınır Hattı)", "Çin", "Güney Çin ile temas noktası", [37.00, 112.00]],
+    ["Büyük Hun İmparatorluğu", "Pingcheng (Datong)", "Çin", "Çin'e yapılan akınların önemli noktası", [40.09, 113.29]],
+    ["Büyük Hun İmparatorluğu", "Büyük Hingan Dağları", "Çin/Moğolistan", "Doğu sınırı ve doğal engel", [46.00, 120.00]]
+],
+          },
+          gokturk: {
+            boundaryPoints: [
+             
+   
+   
+    ["Göktürk Kağanlığı", "Muhan Nehri (Amur Havzası)", "Rusya", "Doğudaki genişleme sınırı", [50.00, 125.00]],
+    ["Göktürk Kağanlığı", "Tibet Platosu (Kunlun Dağları)", "Çin", "Güney sınırı ve doğal engel", [36.00, 85.00]],
+    ["Göktürk Kağanlığı", "Kafkas Dağları (Derbent)", "Rusya", "Güneybatıdaki sınır ve stratejik geçit", [42.06, 48.29]],
+     ["Göktürk Kağanlığı", "İdil (Volga) Nehri", "Rusya", "Batıdaki en uç yayılım, Hazar Denizi yakınları", [48.00, 47.00]],
+     ["Göktürk Kağanlığı", "Yenisey Nehri Kaynakları", "Rusya", "Kuzeydeki yayılımın en uzak noktaları", [50.00, 95.00]],
+              
+   
+    
+    
+    
+
+            ],
+            allPoints: [
+             ["Göktürk Kağanlığı", "Ötüken", "Moğolistan", "Kağanlığın kutsal ve siyasi merkezi", [47.33, 101.55]],
+    ["Göktürk Kağanlığı", "İdil (Volga) Nehri", "Rusya", "Batıdaki en uç yayılım, Hazar Denizi yakınları", [48.00, 47.00]],
+    ["Göktürk Kağanlığı", "Kafkas Dağları (Derbent)", "Rusya", "Güneybatıdaki sınır ve stratejik geçit", [42.06, 48.29]],
+    ["Göktürk Kağanlığı", "Aral Gölü Kuzeyi", "Kazakistan", "Batıdaki Sirderya/Amu Derya havzası yayılımı", [46.00, 60.00]], // EKLENDİ
+    ["Göktürk Kağanlığı", "Semerkant", "Özbekistan", "Batı Göktürk'ün güney Transoxiana yayılımı", [39.65, 66.97]],
+    ["Göktürk Kağanlığı", "Kaşgar", "Çin", "Güney-Batı Türkistan'daki en uç nokta", [39.47, 75.99]], // EKLENDİ
+    ["Göktürk Kağanlığı", "Tibet Platosu (Kunlun Dağları)", "Çin", "Güney sınırı ve doğal engel", [36.00, 85.00]],
+    ["Göktürk Kağanlığı", "Turfan", "Çin", "Doğu Türkistan'daki önemli ticaret ve kültür merkezi", [42.95, 89.18]],
+    ["Göktürk Kağanlığı", "Altay Dağları", "Moğolistan/Çin", "Merkezi yayılımın doğal sınırı", [48.99, 88.99]],
+    ["Göktürk Kağanlığı", "Yenisey Nehri Kaynakları", "Rusya", "Kuzeydeki yayılımın en uzak noktaları", [50.00, 95.00]],
+    ["Göktürk Kağanlığı", "Muhan Nehri (Amur Havzası)", "Rusya", "Doğudaki genişleme sınırı", [50.00, 125.00]]
+            ]
+          },
+          // Diğer devletler için benzer yapı eklenebilir
+           uygur: {
+            boundaryPoints: [
+             
+    ["Uygur Kağanlığı", "Karabalgasun", "Moğolistan", "Kağanlığın başkenti (Ordu-Balık)", [47.32, 102.83]],
+        ["Uygur Kağanlığı", "Baykal Gölü", "Rusya", "Kuzeydoğu sınırındaki etki alanı", [53.50, 108.00]], // Kuzey Sınır
+        ["Uygur Kağanlığı", "Yenisey (Kırgız Bozkırları)", "Rusya", "Kırgızlara karşı kuzeybatı sınırı", [52.00, 90.00]], // Kuzeybatı Sınır
+        ["Uygur Kağanlığı", "Balasagun", "Kırgızistan", "Batıdaki Karahanlılar ile sınır noktası", [42.83, 75.30]], // Batı Sınır
+        ["Uygur Kağanlığı", "Kaşgar", "Çin", "Batıdaki Uygur devletlerinin ve İpek Yolu'nun merkezi", [39.47, 75.99]],
+        ["Uygur Kağanlığı", "Hotan", "Çin", "Tarım Havzası'ndaki güney yayılımı", [37.12, 79.93]],
+        ["Uygur Kağanlığı", "Dunhuang", "Çin", "Gansu Uygur Devleti'nin doğudaki en uç noktası", [40.13, 94.67]], // Doğu Sınır
+       
+   
+
+            ],
+            allPoints: [
+             ["Uygur Kağanlığı", "Karabalgasun", "Moğolistan", "Kağanlığın başkenti (Ordu-Balık)", [47.32, 102.83]],
+        ["Uygur Kağanlığı", "Baykal Gölü", "Rusya", "Kuzeydoğu sınırındaki etki alanı", [53.50, 108.00]], // Kuzey Sınır
+        ["Uygur Kağanlığı", "Yenisey (Kırgız Bozkırları)", "Rusya", "Kırgızlara karşı kuzeybatı sınırı", [52.00, 90.00]], // Kuzeybatı Sınır
+        ["Uygur Kağanlığı", "Balasagun", "Kırgızistan", "Batıdaki Karahanlılar ile sınır noktası", [42.83, 75.30]], // Batı Sınır
+        ["Uygur Kağanlığı", "Kaşgar", "Çin", "Batıdaki Uygur devletlerinin ve İpek Yolu'nun merkezi", [39.47, 75.99]],
+        ["Uygur Kağanlığı", "Hotan", "Çin", "Tarım Havzası'ndaki güney yayılımı", [37.12, 79.93]],
+        ["Uygur Kağanlığı", "Dunhuang", "Çin", "Gansu Uygur Devleti'nin doğudaki en uç noktası", [40.13, 94.67]], // Doğu Sınır
+        ["Uygur Kağanlığı", "Turfan", "Çin", "İdikut Uygur Devleti'nin kalbi", [42.95, 89.18]],
+        ["Uygur Kağanlığı", "Kumul, Çin", "Çin", "Doğu Türkistan'ın doğu kapısı", [42.82, 93.51]]
+  
+            ]
+          },
+          
+           karahanli: {
+            boundaryPoints: [
+               ["Karahanlılar", "Otrar", "Kazakistan", "Sirderya Nehri üzerindeki önemli kale ve kuzey sınırı", [44.00, 67.50]], // Kuzeybatı Sınır
+              ["Karahanlılar", "Balasagun", "Kırgızistan", "Doğu Kağanlığı'nın ilk başkenti", [42.83, 75.30]],
+              ["Karahanlılar", "Hotan", "Çin", "Güney Tarım Havzası'ndaki yayılım", [37.12, 79.93]],
+              ["Karahanlılar", "Tirmiz", "Özbekistan", "Güneydeki Ceyhun Nehri sınırında", [37.22, 67.27]], // Güney Sınır
+              ["Karahanlılar", "Buhara", "Özbekistan", "Batı Kağanlığı'nın ana merkezi", [39.77, 64.43]],
+              
+       
+    
+   
+
+            ],
+            allPoints: [
+             ["Karahanlılar", "Balasagun", "Kırgızistan", "Doğu Kağanlığı'nın ilk başkenti", [42.83, 75.30]],
+        ["Karahanlılar", "Yarkent", "Çin", "Doğu Karahanlıların en doğudaki şehirlerinden", [38.41, 77.24]], // Doğu Sınır
+        ["Karahanlılar", "Hotan", "Çin", "Güney Tarım Havzası'ndaki yayılım", [37.12, 79.93]],
+        ["Karahanlılar", "Kaşgar", "Çin", "Önemli başkent ve kültür merkezi", [39.47, 75.99]],
+        ["Karahanlılar", "Taşkent", "Özbekistan", "Batı Kağanlığı'nın kuzey sınırı", [41.31, 69.28]], // Kuzey Sınır
+        ["Karahanlılar", "Buhara", "Özbekistan", "Batı Kağanlığı'nın ana merkezi", [39.77, 64.43]],
+        ["Karahanlılar", "Semerkant", "Özbekistan", "Batı Kağanlığı'nın önemli şehirlerinden", [39.65, 66.97]],
+        ["Karahanlılar", "Tirmiz", "Özbekistan", "Güneydeki Ceyhun Nehri sınırında", [37.22, 67.27]], // Güney Sınır
+        ["Karahanlılar", "Otrar", "Kazakistan", "Sirderya Nehri üzerindeki önemli kale ve kuzey sınırı", [44.00, 67.50]], // Kuzeybatı Sınır
+        ["Karahanlılar", "Fergana", "Özbekistan", "Verimli vadi ve merkezi konum", [40.38, 71.78]]
+    
+  
+            ]
+          },
+          
+              gazneli: {
+            boundaryPoints: [
+             
+   
+        ["Gazneliler", "İsfahan", "İran", "Batıdaki en uç yayılım (Selçuklu'ya yenilmeden önce)", [32.65, 51.67]], // Batı Sınır
+        ["Gazneliler", "Nişabur", "İran", "Horasan'ın batısındaki önemli merkez", [36.21, 58.79]],
+        ["Gazneliler", "Belh", "Afganistan", "Kuzeydeki önemli merkez", [36.75, 66.90]],
+        ["Gazneliler", "Peşaver", "Pakistan", "Hindistan'a geçiş kapısı", [34.00, 71.50]],
+        ["Gazneliler", "Lahor", "Pakistan", "Hindistan'daki ana merkez ve doğu başkenti", [31.58, 74.35]], // Doğu Sınır
+        ["Gazneliler", "Multan", "Pakistan", "Güneydoğudaki Sind bölgesine yayılım", [30.19, 71.46]], // Güneydoğu Sınır
+       
+
+            ],
+            allPoints: [
+            ["Gazneliler", "Gazne", "Afganistan", "İmparatorluğun başkenti", [33.56, 68.42]],
+        ["Gazneliler", "İsfahan", "İran", "Batıdaki en uç yayılım (Selçuklu'ya yenilmeden önce)", [32.65, 51.67]], // Batı Sınır
+        ["Gazneliler", "Nişabur", "İran", "Horasan'ın batısındaki önemli merkez", [36.21, 58.79]],
+        ["Gazneliler", "Herat", "Afganistan", "Batıdaki önemli ticaret kapısı", [34.35, 62.20]],
+        ["Gazneliler", "Belh", "Afganistan", "Kuzeydeki önemli merkez", [36.75, 66.90]],
+        ["Gazneliler", "Kabil", "Afganistan", "Doğudaki yayılımın başlangıç noktası", [34.53, 69.17]],
+        ["Gazneliler", "Peşaver", "Pakistan", "Hindistan'a geçiş kapısı", [34.00, 71.50]],
+        ["Gazneliler", "Lahor", "Pakistan", "Hindistan'daki ana merkez ve doğu başkenti", [31.58, 74.35]], // Doğu Sınır
+        ["Gazneliler", "Multan", "Pakistan", "Güneydoğudaki Sind bölgesine yayılım", [30.19, 71.46]], // Güneydoğu Sınır
+        ["Gazneliler", "Kandahar", "Afganistan", "Güneydeki yayılımın merkezi", [31.61, 65.70]]
+    
+  
+            ]
+          },
+          
+                 buyukSelcuklu: {
+            boundaryPoints: [
+             ["Büyük Selçuklu İmparatorluğu", "Otrar", "Kazakistan", "Kuzeydoğu sınırında, Karahanlılara karşı kale", [44.00, 67.50]],
+             ["Büyük Selçuklu İmparatorluğu", "Derbent", "Rusya", "Kuzeydeki Kafkas sınırı", [42.06, 48.29]],
+              
+             ["Büyük Selçuklu İmparatorluğu", "Antakya", "Türkiye", "Batıdaki Bizans ile sınır noktası (Haçlı Seferleri öncesi)", [36.20, 36.16]],
+             ["Büyük Selçuklu İmparatorluğu", "Şam", "Suriye", "Filistin ve Mısır yayılımının başlangıcı", [33.51, 36.29]],
+             ["Büyük Selçuklu İmparatorluğu", "Umman Denizi Kıyısı", "Umman", "Güneydoğu Arap Yarımadası etki alanı", [22.50, 59.00]], // EKLENDİ
+             
+            ["Büyük Selçuklu İmparatorluğu", "Belh", "Afganistan", "Doğudaki yayılımın uç noktası", [36.75, 66.90]],
+    
+   
+
+            ],
+            allPoints: [
+            ["Büyük Selçuklu İmparatorluğu", "Malazgirt", "Türkiye", "Anadolu'ya geçişin ve zaferin kilit noktası.", [39.117, 42.55]],
+            ["Büyük Selçuklu İmparatorluğu", "İsfahan", "İran", "Son ve en görkemli başkent", [32.65, 51.67]],
+    ["Büyük Selçuklu İmparatorluğu", "Antakya", "Türkiye", "Batıdaki Bizans ile sınır noktası (Haçlı Seferleri öncesi)", [36.20, 36.16]],
+    ["Büyük Selçuklu İmparatorluğu", "Halep", "Suriye", "Güneybatıdaki önemli kale ve ticaret merkezi", [36.20, 37.16]],
+    ["Büyük Selçuklu İmparatorluğu", "Şam", "Suriye", "Filistin ve Mısır yayılımının başlangıcı", [33.51, 36.29]],
+    ["Büyük Selçuklu İmparatorluğu", "Bağdat", "Irak", "Abbasi Halifeliği'nin merkezi ve Selçuklu himayesi", [33.32, 44.36]],
+    ["Büyük Selçuklu İmparatorluğu", "Tebriz", "İran", "Kuzeybatıdaki Azerbaycan yayılımı", [38.08, 46.29]],
+    ["Büyük Selçuklu İmparatorluğu", "Derbent", "Rusya", "Kuzeydeki Kafkas sınırı", [42.06, 48.29]],
+    ["Büyük Selçuklu İmparatorluğu", "Otrar", "Kazakistan", "Kuzeydoğu sınırında, Karahanlılara karşı kale", [44.00, 67.50]],
+    ["Büyük Selçuklu İmparatorluğu", "Merv", "Türkmenistan", "Horasan'daki önemli merkez", [37.66, 62.18]],
+    ["Büyük Selçuklu İmparatorluğu", "Herat", "Afganistan", "Doğu sınırının önemli şehirlerinden", [34.35, 62.20]],
+    ["Büyük Selçuklu İmparatorluğu", "Belh", "Afganistan", "Doğudaki yayılımın uç noktası", [36.75, 66.90]],
+    ["Büyük Selçuklu İmparatorluğu", "Hürmüz Boğazı", "İran/Umman", "Basra Körfezi'ndeki hakimiyetin güney sınırı", [26.00, 56.50]], // EKLENDİ
+    ["Büyük Selçuklu İmparatorluğu", "Umman Denizi Kıyısı", "Umman", "Güneydoğu Arap Yarımadası etki alanı", [22.50, 59.00]] // EKLENDİ
+    
+  
+            ]
+          },
+          
+                   harzemsah: {
+            boundaryPoints: [
+             
+ 
+        ["Harzemşahlar", "Gence", "Azerbaycan", "Kuzeybatıdaki yayılımın sınır noktası", [40.70, 46.35]], // Kuzeybatı Sınır
+        ["Harzemşahlar", "Otrar", "Kazakistan", "Kuzeydoğu sınırı, Moğol istilasının başlangıç noktası", [44.00, 67.50]], // Kuzeydoğu Sınır
+        ["Harzemşahlar", "Taşkent", "Özbekistan", "Kuzeydeki Sirderya Nehri boyunca yayılım", [41.31, 69.28]],
+        ["Harzemşahlar", "Gazne", "Afganistan", "Güneydoğudaki ele geçirilen merkez (Hint sınırına yakın)", [33.56, 68.42]], // Güneydoğu Sınır
+        ["Harzemşahlar", "Rey", "İran", "Batıdaki en uç yayılım, Moğol istilası öncesi", [35.65, 51.44]], // Batı Sınır
+        ["Harzemşahlar", "Tebriz", "İran", "Azerbaycan'daki ele geçirilen merkez", [38.08, 46.29]],
+              
+ 
+    
+   
+
+            ],
+            allPoints: [
+            ["Harzemşahlar", "Ürgenç", "Türkmenistan", "Başkent ve Harzem bölgesi", [42.32, 59.15]],
+        ["Harzemşahlar", "Rey", "İran", "Batıdaki en uç yayılım, Moğol istilası öncesi", [35.65, 51.44]], // Batı Sınır
+        ["Harzemşahlar", "Tebriz", "İran", "Azerbaycan'daki ele geçirilen merkez", [38.08, 46.29]],
+        ["Harzemşahlar", "Gence", "Azerbaycan", "Kuzeybatıdaki yayılımın sınır noktası", [40.70, 46.35]], // Kuzeybatı Sınır
+        ["Harzemşahlar", "Nişabur", "İran", "Horasan'daki hakimiyet merkezi", [36.21, 58.79]],
+        ["Harzemşahlar", "Belh", "Afganistan", "Güneydeki yayılımın bir noktası", [36.75, 66.90]],
+        ["Harzemşahlar", "Gazne", "Afganistan", "Güneydoğudaki ele geçirilen merkez (Hint sınırına yakın)", [33.56, 68.42]], // Güneydoğu Sınır
+        ["Harzemşahlar", "Otrar", "Kazakistan", "Kuzeydoğu sınırı, Moğol istilasının başlangıç noktası", [44.00, 67.50]], // Kuzeydoğu Sınır
+        ["Harzemşahlar", "Semerkant", "Özbekistan", "Büyük ticaret ve kültür merkezi", [39.65, 66.97]],
+        ["Harzemşahlar", "Taşkent", "Özbekistan", "Kuzeydeki Sirderya Nehri boyunca yayılım", [41.31, 69.28]]
+    
+  
+            ]
+          },
+          
+           anadoluSelcuklu: {
+            boundaryPoints: [
+             
+ 
+        ["Anadolu Selçuklu Devleti", "İznik", "Türkiye", "İlk başkent ve Batıdaki sınır noktası", [40.42, 29.72]], // Batı Sınır
+        ["Anadolu Selçuklu Devleti", "Sinop", "Türkiye", "Kuzeydeki Karadeniz limanı ve tersane", [42.03, 35.15]], // Kuzey Sınır
+        ["Anadolu Selçuklu Devleti", "Trabzon", "Türkiye", "Kuzeydoğudaki Komnenos'a karşı sınır noktası", [41.00, 39.73]], // Kuzeydoğu Sınır
+        ["Anadolu Selçuklu Devleti", "Erzurum", "Türkiye", "Doğu Anadolu'daki önemli merkez", [39.90, 41.27]], // Doğu Sınır
+        ["Anadolu Selçuklu Devleti", "Diyarbakır", "Türkiye", "Güneydoğudaki Eyyûbilere karşı sınır", [37.91, 40.23]], // Güneydoğu Sınır
+       
+        ["Anadolu Selçuklu Devleti", "Alanya", "Türkiye", "Önemli deniz üssü", [36.54, 31.99]],
+        ["Anadolu Selçuklu Devleti", "Antalya", "Türkiye", "Güneydeki Akdeniz limanı", [36.89, 30.70]], // Güney Sınır
+       
+    
+
+            ],
+            allPoints: [
+            ["Anadolu Selçuklu Devleti", "Konya", "Türkiye", "Başkent", [37.87, 32.48]],
+        ["Anadolu Selçuklu Devleti", "İznik", "Türkiye", "İlk başkent ve Batıdaki sınır noktası", [40.42, 29.72]], // Batı Sınır
+        ["Anadolu Selçuklu Devleti", "Sinop", "Türkiye", "Kuzeydeki Karadeniz limanı ve tersane", [42.03, 35.15]], // Kuzey Sınır
+        ["Anadolu Selçuklu Devleti", "Trabzon", "Türkiye", "Kuzeydoğudaki Komnenos'a karşı sınır noktası", [41.00, 39.73]], // Kuzeydoğu Sınır
+        ["Anadolu Selçuklu Devleti", "Erzurum", "Türkiye", "Doğu Anadolu'daki önemli merkez", [39.90, 41.27]], // Doğu Sınır
+        ["Anadolu Selçuklu Devleti", "Diyarbakır", "Türkiye", "Güneydoğudaki Eyyûbilere karşı sınır", [37.91, 40.23]], // Güneydoğu Sınır
+        ["Anadolu Selçuklu Devleti", "Antalya", "Türkiye", "Güneydeki Akdeniz limanı", [36.89, 30.70]], // Güney Sınır
+        ["Anadolu Selçuklu Devleti", "Alanya", "Türkiye", "Önemli deniz üssü", [36.54, 31.99]],
+        ["Anadolu Selçuklu Devleti", "Sivas", "Türkiye", "Doğu-Batı ticaret yolu merkezi", [39.75, 37.02]],
+        ["Anadolu Selçuklu Devleti", "Kayseri", "Türkiye", "Ekonomik merkez", [38.73, 35.48]]
+    
+  
+            ]
+          },
+          
+          altinOrda: {
+            boundaryPoints: [
+             
+
+        
+        ["Altın Orda Devleti", "Moskova", "Rusya", "Kuzeydeki vasal prensliklere etki alanı", [55.75, 37.61]], // Kuzeybatı Sınır
+        ["Altın Orda Devleti", "Kazan", "Rusya", "Kuzeydeki İdil Bulgarları bölgesindeki hanlık merkezi", [55.79, 49.12]],
+        ["Altın Orda Devleti", "Ural Dağları", "Rusya", "Doğudaki doğal sınır", [55.00, 60.00]], // Doğu Sınır
+        ["Altın Orda Devleti", "Otrar", "Kazakistan", "Güneydoğudaki Çağatay Hanlığı'na karşı sınır", [44.00, 67.50]], // Güneydoğu Sınır
+        ["Altın Orda Devleti", "Derbent", "Rusya", "Güneydeki Kafkasya'ya giriş kapısı", [42.06, 48.29]], // Güney Sınır
+        ["Altın Orda Devleti", "Kırım (Bahçesaray)", "Ukrayna", "Karadeniz ve deniz ticaretinin merkezi", [44.75, 33.87]],
+        
+        
+    
+   
+
+            ],
+            allPoints: [
+             ["Altın Orda Devleti", "Saray Berke", "Rusya", "Başkent", [48.70, 45.47]],
+        ["Altın Orda Devleti", "Dinyeper Nehri", "Ukrayna", "Batıdaki en uç yayılım, Litvanya'ya karşı sınır", [47.50, 35.00]], // Batı Sınır
+        ["Altın Orda Devleti", "Kırım (Bahçesaray)", "Ukrayna", "Karadeniz ve deniz ticaretinin merkezi", [44.75, 33.87]],
+        ["Altın Orda Devleti", "Azak Denizi", "Rusya/Ukrayna", "Batıdaki deniz sınırı", [46.00, 37.00]],
+        ["Altın Orda Devleti", "Derbent", "Rusya", "Güneydeki Kafkasya'ya giriş kapısı", [42.06, 48.29]], // Güney Sınır
+        ["Altın Orda Devleti", "Otrar", "Kazakistan", "Güneydoğudaki Çağatay Hanlığı'na karşı sınır", [44.00, 67.50]], // Güneydoğu Sınır
+        ["Altın Orda Devleti", "Ural Dağları", "Rusya", "Doğudaki doğal sınır", [55.00, 60.00]], // Doğu Sınır
+        ["Altın Orda Devleti", "Kazan", "Rusya", "Kuzeydeki İdil Bulgarları bölgesindeki hanlık merkezi", [55.79, 49.12]],
+        ["Altın Orda Devleti", "Moskova", "Rusya", "Kuzeydeki vasal prensliklere etki alanı", [55.75, 37.61]], // Kuzeybatı Sınır
+        ["Altın Orda Devleti", "Astrahan", "Rusya", "Volga deltası ve Hazar kapısı", [46.35, 48.03]]
+    
+  
+            ]
+          },
+          
+             timur: {
+            boundaryPoints: [
+             
+   
+        ["Timur İmparatorluğu", "İzmir", "Türkiye", "Batıdaki en uç nokta (Ankara Savaşı sonrası fetih)", [38.41, 27.14]], // Batı Sınır
+       
+        ["Timur İmparatorluğu", "Ural Nehri", "Kazakistan", "Kuzeydoğu yayılımının en uzak noktaları", [48.00, 58.00]], // Kuzeydoğu Sınır
+        ["Timur İmparatorluğu", "Taşkent", "Özbekistan", "Kuzeydeki önemli kale", [41.31, 69.28]],
+         ["Timur İmparatorluğu", "Delhi", "Hindistan", "Güneydoğudaki en uç nokta (yağmalama sonrası)", [28.61, 77.20]], // Güneydoğu Sınır
+         ["Timur İmparatorluğu", "Şiraz", "İran", "Güney İran'daki idari merkez", [29.61, 52.53]],     
+         
+          ["Timur İmparatorluğu", "Şam", "Suriye", "Memlüklere karşı fethedilen güneybatı noktası", [33.51, 36.29]],
+       
+
+            ],
+            allPoints: [
+             ["Timur İmparatorluğu", "Semerkant", "Özbekistan", "Başkent ve kültürel merkez", [39.65, 66.97]],
+        ["Timur İmparatorluğu", "İzmir", "Türkiye", "Batıdaki en uç nokta (Ankara Savaşı sonrası fetih)", [38.41, 27.14]], // Batı Sınır
+        ["Timur İmparatorluğu", "Şam", "Suriye", "Memlüklere karşı fethedilen güneybatı noktası", [33.51, 36.29]],
+        ["Timur İmparatorluğu", "Delhi", "Hindistan", "Güneydoğudaki en uç nokta (yağmalama sonrası)", [28.61, 77.20]], // Güneydoğu Sınır
+        ["Timur İmparatorluğu", "Taşkent", "Özbekistan", "Kuzeydeki önemli kale", [41.31, 69.28]],
+        ["Timur İmparatorluğu", "Herat", "Afganistan", "İkinci önemli merkez", [34.35, 62.20]],
+        ["Timur İmparatorluğu", "Şiraz", "İran", "Güney İran'daki idari merkez", [29.61, 52.53]],
+        ["Timur İmparatorluğu", "İsfahan", "İran", "Orta İran'daki hakimiyet merkezi", [32.65, 51.67]],
+        ["Timur İmparatorluğu", "Derbent", "Rusya", "Kuzeydeki Altın Orda'ya karşı sınır hattı", [42.06, 48.29]], // Kuzey Sınır
+        ["Timur İmparatorluğu", "Ural Nehri", "Kazakistan", "Kuzeydoğu yayılımının en uzak noktaları", [48.00, 58.00]] // Kuzeydoğu Sınır
+    
+  
+            ]
+          },
+          
+               babur: {
+            boundaryPoints: [
+             
+              ["Babür İmparatorluğu", "Dakka", "Bangladeş", "Doğu Bengal'deki yayılımın en uç noktası", [23.81, 90.41]], // Doğu Sınır
+              ["Babür İmparatorluğu", "Mysore", "Hindistan", "Güneydeki en uç yayılım (Marathalara karşı)", [12.29, 76.64]], // Güneydoğu Sınır
+              ["Babür İmparatorluğu", "Kandahar", "Afganistan", "İran Safavileri'ne karşı sınır şehri", [31.61, 65.70]], // Batı Sınır
+              ["Babür İmparatorluğu", "Kabil", "Afganistan", "Batıdaki önemli merkez, Babür'ün ilk yerleşim yeri", [34.53, 69.17]], // Batı Sınır
+              
+ 
+   
+
+            ],
+            allPoints: [
+            ["Babür İmparatorluğu", "Delhi", "Hindistan", "Başkent ve siyasi merkez", [28.61, 77.20]],
+        ["Babür İmparatorluğu", "Kabil", "Afganistan", "Batıdaki önemli merkez, Babür'ün ilk yerleşim yeri", [34.53, 69.17]], // Batı Sınır
+        ["Babür İmparatorluğu", "Kandahar", "Afganistan", "İran Safavileri'ne karşı sınır şehri", [31.61, 65.70]], // Batı Sınır
+        ["Babür İmparatorluğu", "Lahor", "Pakistan", "Kuzeydeki idari ve kültürel merkez", [31.58, 74.35]],
+        ["Babür İmparatorluğu", "Agra", "Hindistan", "Başka bir önemli başkent", [27.18, 78.01]],
+        ["Babür İmparatorluğu", "Haydarabad", "Hindistan", "Güneydeki Deccan yayılımının merkezi", [17.38, 78.48]], // Güney Sınır
+        ["Babür İmparatorluğu", "Mysore", "Hindistan", "Güneydeki en uç yayılım (Marathalara karşı)", [12.29, 76.64]], // Güneydoğu Sınır
+        ["Babür İmparatorluğu", "Dakka", "Bangladeş", "Doğu Bengal'deki yayılımın en uç noktası", [23.81, 90.41]], // Doğu Sınır
+        ["Babür İmparatorluğu", "Patna", "Hindistan", "Doğudaki önemli merkez", [25.61, 85.14]]
+    
+  
+            ]
+          },
+          
+               osmanli: {
+            boundaryPoints: [
+            // 1. ANADOLU/BAŞKENT (Başlangıç)
+
+    // 2. KUZEY/BATI AVRUPA
+    ["Osmanlı İmparatorluğu", "Viyana", "Avusturya", "Avrupa'daki en batı askeri hedef", [48.21, 16.37]],
+    // 5. KUZEY/DOĞU AVRUPA
+    ["Osmanlı İmparatorluğu", "Kamaniçe (Podolya)", "Ukrayna", "Lehistan'daki en kuzey yönetim noktası", [48.68, 26.58]],
+    // 6. KUZEYDOĞU/KARADENİZ
+    ["Osmanlı İmparatorluğu", "Astrahan", "Rusya", "Kuzeydeki Osmanlı-Kırım etki alanı", [46.35, 48.03]],
+    ["Osmanlı İmparatorluğu", "Derbent", "Rusya Federasyonu (Dağıstan)", "Hazar Denizi kıyısındaki en kuzeydoğu kale (kısa süreli kontrol).", [42.06, 48.28]],
+    // 9. DOĞU/KAFKASYA
+    // KAFKASYA / AZERBAYCAN
+    ["Osmanlı İmparatorluğu", "Bakü", "Azerbaycan", "Hazar kıyısında kısa süreli kontrol edilen stratejik liman.", [40.37, 49.89]],          
+    ["Osmanlı İmparatorluğu", "Tebriz", "İran", "Doğu'da (İran) kilit mücadele noktası", [38.08, 46.29]],
+    ["Osmanlı İmparatorluğu", "Basra", "Irak", "İmparatorluğun Basra Körfezi'ne açılan kapısı ve deniz üssü.", [30.50, 47.82]],
+    ["Osmanlı İmparatorluğu", "El-Katif", "Suudi Arabistan", "Körfez kıyısında Katar ve Bahreyn'e yakın önemli bir liman.", [26.56, 50.00]],
+    // 10. DOĞU/KÖRFEZ
+    ["Osmanlı İmparatorluğu", "Hufuf (Al-Ahsa)", "Suudi Arabistan", "Basra Körfezi'ndeki en doğu uzanım", [25.37, 49.57]],
+    // 11. GÜNEY/HİCAZ
+    
+    // 12. GÜNEY/YEMEN
+    ["Osmanlı İmparatorluğu", "San'a", "Yemen", "Güneydeki en uç yayılım (Yemen Eyaleti)", [15.36, 44.20]],
+    ["Osmanlı İmparatorluğu", "Eritre", "Eritre", "Habeş Eyaleti'nin Kızıldeniz kıyısındaki merkezi.", [15.5898, 39.4674]],
+    // 13. KUZEY AFRİKA/KIYI
+    
+   
+    ["Osmanlı İmparatorluğu", "Fizan (Murzuk)", "Libya", "Sahra ticaret yollarının kontrol noktası.", [25.91, 13.92]],
+   ["Osmanlı İmparatorluğu", "Tilimsan (Tlemcen)", "Cezayir", "Fas sınırına yakın, batıdaki siyasi etki/kontrol noktası.", [34.88, -1.31]],
+             
+      ["Osmanlı İmparatorluğu", "Vahran (Oran)", "Cezayir", "Cezayir Beylerbeyliği'nin batısındaki önemli liman.", [35.69, -0.63]],
+      ["Osmanlı İmparatorluğu", "Cezayir", "Cezayir", "Batıdaki önemli eyalet", [36.75, 3.06]],
+
+   
+    
+     ["Osmanlı İmparatorluğu", "TUNUS", "Tunus", "Batı Akdeniz hakimiyeti", [37.5, 10.60]],
+     ["Osmanlı İmparatorluğu", "Tripoli (Trablus)", "Libya", "Orta Kuzey Afrika Kıyısı", [32.88, 13.19]],
+       ["Osmanlı İmparatorluğu", "Mora (Güney Yunanistan)", "Yunanistan", "Akdeniz'e çıkış ve deniz hakimiyeti", [36.80, 19.6]], 
+       ["Osmanlı İmparatorluğu", "Avlonya (Vlorë)", "Arnavutluk", "Adriyatik/Otranto Boğazı kontrol noktası", [40.45, 19.48]],
+       ["Osmanlı İmparatorluğu", "Dubrovnik (Ragusa)", "Hırvatistan", "Himaye altındaki özerk liman devleti (Vasal).", [42.6507, 18.0944]], 
+          ["Osmanlı İmparatorluğu", "Klis (Kalesi)", "Hırvatistan", "Dalmaçya kıyısındaki stratejik kale (Venedik'e karşı).", [43.5658, 16.4950]],
+         ["Osmanlı İmparatorluğu", "Bihaç", "Bosna-Hersek", "Hırvatistan sınırındaki en batı uç kale şehirlerinden biri.", [44.8167, 15.8667]],
+    // 39. DALMAÇYA KIYISI
+
+    // 17. ADRİYATİK SINIRI
+    
+    // 18. ADRİYATİK SINIRI
+    
+    
+
+ 
+ 
+
+            ],
+            allPoints: [
+     ["Osmanlı İmparatorluğu", "Fizan (Murzuk)", "Libya", "Sahra ticaret yollarının kontrol noktası.", [25.91, 13.92]],
+     ["Osmanlı İmparatorluğu", "İskenderiye", "Mısır", "Mısır'ın en büyük Akdeniz limanı ve ticaret kapısı.", [31.2001, 29.9187]],
+    // 63. LİBYA DOĞU LİMANI
+    ["Osmanlı İmparatorluğu", "Bingazi", "Libya", "Trablusgarp Eyaleti'nin doğu kıyısındaki önemli limanı.", [32.1150, 20.0650]],
+    // 64. KIZILDENİZ KUZEY UCU
+    ["Osmanlı İmparatorluğu", "Akabe", "Ürdün", "Kızıldeniz'in kuzey ucundaki stratejik liman.", [29.5300, 35.0000]],
+    // 65. SÜVEYŞ GEÇİŞİ
+    ["Osmanlı İmparatorluğu", "Süveyş", "Mısır", "Kızıldeniz'e açılan askeri ve ticari liman.", [29.9700, 32.5300]],
+    // 66. GÜNEYDOĞU ANADOLU MERKEZİ
+    ["Osmanlı İmparatorluğu", "Diyarbakır", "Türkiye", "Doğu Anadolu'daki büyük eyalet merkezi ve askeri üs.", [37.9100, 40.2400]],
+    // 67. DOĞU ANADOLU ASKERİ MERKEZİ
+    ["Osmanlı İmparatorluğu", "Erzurum", "Türkiye", "Kafkasya seferleri için kilit askeri yığınak ve ticaret merkezi.", [39.9077, 41.2721]],
+    // 68. İÇ ANADOLU KÜLTÜR MERKEZİ
+    ["Osmanlı İmparatorluğu", "Konya", "Türkiye", "Selçuklu başkenti.", [37.8746, 32.4932]],
+    // 69. KUZEY IRAK MERKEZİ
+    ["Osmanlı İmparatorluğu", "Kerkük", "Irak", "Kuzey Mezopotamya'daki önemli ticaret merkezi.", [35.4740, 44.3940]],
+    // 70. BASRA KÖRFEZİ KONTROLÜ
+    ["Osmanlı İmparatorluğu", "Lahsa (Hofuf)", "Suudi Arabistan", "Lahsa Eyaleti merkezi (Doğu Arabistan'daki kontrol noktası).", [25.3700, 49.5700]],         
+     ["Osmanlı İmparatorluğu", "Medine", "Suudi Arabistan", "İki Kutsal Şehrin ikincisi ve manevi merkez.", [24.4686, 39.6142]],
+     ["Osmanlı İmparatorluğu", "Köstence (Constanța)", "Romanya", "Dobruca'daki önemli Karadeniz limanı (doğrudan bağlı).", [44.1661, 28.6366]],
+    // 57. TUNA ÜZERİ KALE (DOĞRUDAN KONTROL)
+    ["Osmanlı İmparatorluğu", "İbrail (Brăila)", "Romanya", "Tuna üzerinde kritik kale ve ticaret merkezi.", [45.2811, 27.9704]],
+    // 58. TUNA AĞZI KONTROL NOKTASI
+    ["Osmanlı İmparatorluğu", "Kili", "Romanya", "Tuna Nehri ağzında stratejik kale (doğrudan kontrol).", [45.4089, 29.3622]],
+    // 59. EFLAK VASAL BAŞKENTİ
+    ["Osmanlı İmparatorluğu", "Bükreş (București)", "Romanya", "Eflak Beyliği'nin başkenti (Osmanlı himayesi).", [44.4268, 26.1025]],
+    // 60. BOĞDAN VASAL BAŞKENTİ
+    ["Osmanlı İmparatorluğu", "Yaş (Iași)", "Romanya", "Boğdan Beyliği'nin başkenti (Osmanlı himayesi).", [47.1585, 27.6014]],         
+     ["Osmanlı İmparatorluğu", "Rusçuk (Ruse)", "Bulgaristan", "Tuna Nehri üzerindeki önemli kale ve ticaret merkezi.", [43.8580, 25.9525]],
+    // 50. TUNA EYALET MERKEZİ
+    ["Osmanlı İmparatorluğu", "Silistre", "Bulgaristan", "Tuna'nın Karadeniz'e yakın kıyısında eyalet merkezi.", [44.1189, 27.2625]],
+    // 51. KARADENİZ KUZEYİ
+    ["Osmanlı İmparatorluğu", "Köstence (Constanța)", "Romanya", "Karadeniz'in batı kıyısındaki önemli liman.", [44.1661, 28.6366]],
+    // 52. İÇ RUMELİ MERKEZ
+    ["Osmanlı İmparatorluğu", "Filibe (Plovdiv)", "Bulgaristan", "İç Rumeli'de Edirne'den sonraki en büyük idari merkez.", [42.1444, 24.7497]],
+    // 53. TRAKYA İDARİ MERKEZ
+    ["Osmanlı İmparatorluğu", "Dimetoka (Didymoteicho)", "Yunanistan", "Edirne'ye yakın eski yönetim merkezi.", [41.3653, 26.4764]],
+    // 54. BATI TRAKYA
+    ["Osmanlı İmparatorluğu", "Gümülcine (Komotini)", "Yunanistan", "Batı Trakya'nın (Rumeli) idari ve demografik merkezi.", [41.1214, 25.4053]],
+    // 55. TRAKYA SINIR GEÇİŞİ
+    ["Osmanlı İmparatorluğu", "İpsala", "Türkiye", "Meriç Nehri üzerinde kritik geçiş noktası.", [40.9997, 26.3375]],
+    // 41. EGE/BALKAN LİMANI
+    ["Osmanlı İmparatorluğu", "Selanik (Thessaloniki)", "Yunanistan", "Avrupa'daki en önemli liman ve ticaret merkezi.", [40.6401, 22.9444]],
+    // 42. BATI RUMELİ MERKEZ
+    ["Osmanlı İmparatorluğu", "Yanya (Ioannina)", "Yunanistan", "Epir'in (Batı Rumeli) idari ve kültürel merkezi.", [39.6558, 20.8521]],
+    // 43. RUMELİ ASKERİ MERKEZ
+    ["Osmanlı İmparatorluğu", "Manastır (Bitola)", "Kuzey Makedonya", "Rumeli'nin ortasında stratejik kavşak noktası.", [41.0315, 21.3323]],
+    // 44. ADRİYATİK KALESİ
+    ["Osmanlı İmparatorluğu", "İşkodra (Shkodër)", "Arnavutluk", "Adriyatik kıyısına yakın önemli kale.", [42.0673, 19.5100]],
+    // 45. KOSOVA KÜLTÜR MERKEZİ
+    ["Osmanlı İmparatorluğu", "Prizren", "Kosova", "Kosova bölgesinin önemli kültürel ve idari merkezi.", [42.2150, 20.7300]],
+    // 46. SANCAK BÖLGESİ
+    ["Osmanlı İmparatorluğu", "Yeni Pazar (Novi Pazar)", "Sırbistan", "Sancak bölgesinin ana idari ve ticaret merkezi.", [43.1400, 20.5100]],
+    // 47. KARADENİZ ÜSSÜ
+    ["Osmanlı İmparatorluğu", "Varna", "Bulgaristan", "Karadeniz kıyısındaki önemli liman ve askeri üs.", [43.2081, 27.9150]],
+    // 48. ANA KARA YOLU
+    ["Osmanlı İmparatorluğu", "Niş (Niš)", "Sırbistan", "İstanbul'dan Avrupa'ya giden ana yol üzerindeki kilit durak.", [43.3247, 21.9033]],          
+              
+     // 34. AVUSTURYA SINIRI
+    ["Osmanlı İmparatorluğu", "Yanıkkale (Győr)", "Macaristan", "Avusturya sınırına yakın stratejik kale (kısa süreli).", [47.6833, 17.6333]],
+    // 35. MACARİSTAN GÜNEYİ
+    ["Osmanlı İmparatorluğu", "Segedin (Szeged)", "Macaristan", "Tisa ve Maros nehirlerinin kavşağındaki idari merkez.", [46.2530, 20.1414]],
+    // 36. TUNA ÜZERİ
+    ["Osmanlı İmparatorluğu", "Petervaradin", "Sırbistan", "Tuna üzerindeki devasa kale (Belgrad yakınında).", [45.2553, 19.8753]],
+    // 37. BOSNA İDARİ MERKEZ
+    ["Osmanlı İmparatorluğu", "Banaluka (Banja Luka)", "Bosna-Hersek", "Bosna Eyaleti'nin batı sınırında önemli merkez.", [44.7719, 17.1866]],
+    // 38. EN UÇ BATI KALE
+    ["Osmanlı İmparatorluğu", "Bihaç", "Bosna-Hersek", "Hırvatistan sınırındaki en batı uç kale şehirlerinden biri.", [44.8167, 15.8667]],
+    // 39. DALMAÇYA KIYISI
+    ["Osmanlı İmparatorluğu", "Klis (Kalesi)", "Hırvatistan", "Dalmaçya kıyısındaki stratejik kale (Venedik'e karşı).", [43.5658, 16.4950]],
+    // 40. DRİNA HATTI
+    ["Osmanlı İmparatorluğu", "İzvornik (Zvornik)", "Bosna-Hersek", "Drina Nehri üzerindeki önemli kale.", [44.4250, 19.1000]],
+              
+     ["Osmanlı İmparatorluğu", "İstanbul", "Türkiye", "Son Başkent ve Yönetim Merkezi (1453-1922).", [41.0082, 28.9784]],
+    ["Osmanlı İmparatorluğu", "Edirne", "Türkiye", "Eski Başkent (1369-1453).", [41.6700, 26.5560]],
+    ["Osmanlı İmparatorluğu", "Bursa", "Türkiye", "İlk Başkent (1326-1369).", [40.1885, 29.0609]],
+
+    // 2. KUTSAL VE DİNİ MERKEZLER (Hicaz)
+    ["Osmanlı İmparatorluğu", "Mekke", "Suudi Arabistan", "Kabe'nin bulunduğu kutsal şehir.", [21.4225, 39.8261]],
+    ["Osmanlı İmparatorluğu", "Kudüs", "İsrail/Filistin", "Dini ve tarihi açıdan özel statülü kutsal şehir.", [31.7683, 35.2137]],
+
+    // 3. AVRUPA VE BALKANLAR MERKEZLERİ
+    ["Osmanlı İmparatorluğu", "Budin (Budapeşte)", "Macaristan", "Orta Avrupa'daki önemli eyalet merkezi.", [47.4979, 19.0402]],
+    ["Osmanlı İmparatorluğu", "Belgrad", "Sırbistan", "Tuna üzerindeki stratejik kale ve Avrupa kapısı.", [44.7871, 20.4573]],
+    ["Osmanlı İmparatorluğu", "Saraybosna", "Bosna-Hersek", "Bosna Eyaleti'nin merkezi ve Balkan kültürü kalbi.", [43.8563, 18.4131]],
+    ["Osmanlı İmparatorluğu", "Sofya", "Bulgaristan", "Rumeli'nin önemli idari merkezi.", [42.6977, 23.3219]],
+    ["Osmanlı İmparatorluğu", "Üsküp", "Kuzey Makedonya", "Balkanlarda kültür ve idari merkez.", [41.9981, 21.4254]],
+    ["Osmanlı İmparatorluğu", "Kamaniçe (Kamyanets-Podilski)", "Ukrayna", "Lehistan sınırındaki en kuzeybatı kale.", [48.6700, 26.5800]],
+    ["Osmanlı İmparatorluğu", "Zigetvar", "Macaristan", "Avrupa içlerindeki ünlü kale ve askeri direniş simgesi.", [46.0667, 17.8000]],
+    ["Osmanlı İmparatorluğu", "Mostar", "Bosna-Hersek", "Balkanların iç kesimlerinde kültürel merkez.", [43.3438, 17.8078]],
+
+    // 4. KUZEY AFRİKA VE AKDENİZ
+    ["Osmanlı İmparatorluğu", "Kahire", "Mısır", "Mısır Eyaleti ve Afrika'daki en büyük kent.", [30.0444, 31.2357]],
+    ["Osmanlı İmparatorluğu", "Cezayir", "Cezayir", "Batı Akdeniz hakimiyetinin ana merkezi (Cezayir Beylerbeyliği).", [36.7538, 3.0588]],
+    ["Osmanlı İmparatorluğu", "Trablusgarp", "Libya", "Trablusgarp Eyaleti'nin başkenti.", [32.8872, 13.1932]],
+    ["Osmanlı İmparatorluğu", "Tunus", "Tunus", "Kuzey Afrika'da önemli bir Eyalet/Beylik merkezi.", [36.8065, 10.1815]],
+    ["Osmanlı İmparatorluğu", "Vahran (Oran)", "Cezayir", "Cezayir Beylerbeyliği'nin batısındaki önemli liman.", [35.6900, -0.6300]],
+    ["Osmanlı İmparatorluğu", "Tilimsan (Tlemcen)", "Cezayir", "Fas sınırına yakın, batıdaki siyasi etki/kontrol noktası.", [34.8800, -1.3100]],
+    ["Osmanlı İmparatorluğu", "Kandiye (Heraklion)", "Yunanistan", "Girit'in yönetim merkezi.", [35.3387, 25.1442]],
+    ["Osmanlı İmparatorluğu", "Lefkoşa", "Kıbrıs", "Kıbrıs Eyaleti'nin başkenti.", [35.1856, 33.3823]],
+
+    // 5. ANADOLU VE LEVANT (ORTA DOĞU)
+    ["Osmanlı İmparatorluğu", "İzmir", "Türkiye", "Ege Denizi'ndeki en büyük ticaret limanı.", [38.4192, 27.1287]],
+    ["Osmanlı İmparatorluğu", "Şam", "Suriye", "Orta Doğu İdari, ticaret ve hac yolu merkezi.", [33.5132, 36.2913]],
+    ["Osmanlı İmparatorluğu", "Halep", "Suriye", "İpek Yolu'nun batıdaki en büyük ticaret durağı.", [36.2021, 37.1321]],
+    ["Osmanlı İmparatorluğu", "Yafa", "İsrail", "Kudüs'e açılan önemli liman.", [32.0500, 34.7500]],
+    ["Osmanlı İmparatorluğu", "Adana", "Türkiye", "Kilikya'nın idari ve tarımsal merkezi.", [37.0000, 35.3250]],
+
+    // 6. MEZOPOTAMYA, KAFKASYA VE KÖRFEZ
+    ["Osmanlı İmparatorluğu", "Bağdat", "Irak", "Mezopotamya Eyaleti Merkezi.", [33.3152, 44.3661]],
+    ["Osmanlı İmparatorluğu", "Musul", "Irak", "Yukarı Mezopotamya'nın ve doğu ticaret yollarının kilit noktası.", [36.3500, 43.1500]],
+    ["Osmanlı İmparatorluğu", "Basra", "Irak", "İmparatorluğun Basra Körfezi'ne açılan kapısı ve deniz üssü.", [30.5000, 47.8200]],
+    ["Osmanlı İmparatorluğu", "Bakü", "Azerbaycan", "Hazar kıyısında kısa süreli kontrol edilen stratejik liman.", [40.3700, 49.8900]],
+    ["Osmanlı İmparatorluğu", "Tebriz", "İran", "Safevi sınırındaki kritik ticaret ve idari merkez (1590 Antlaşması).", [38.0800, 46.2900]],
+
+    // 7. EN UÇ GÜNEY VE KUZEY NOKTALARI
+    ["Osmanlı İmparatorluğu", "Sana (San'a)", "Yemen", "Yemen Eyaleti'nin iç kesimlerindeki merkezi.", [15.3694, 44.1910]],
+    ["Osmanlı İmparatorluğu", "Eritre", "Eritre", "Habeş Eyaleti'nin Kızıldeniz kıyısındaki merkezi.", [15.5898, 39.4674]],
+    ["Osmanlı İmparatorluğu", "Bahçesaray, Kırım", "Ukrayna (Kırım)", "Kırım Hanlığı'nın başkenti (Himaye altındaki en kuzey etki).", [44.7500, 33.8700]],
+
+    // 8. ÖZERK VASAL VE RAKİP ETKİ ALANLARI
+    ["Osmanlı İmparatorluğu", "Dubrovnik (Ragusa)", "Hırvatistan", "Himaye altındaki özerk liman devleti (Vasal).", [42.6507, 18.0944]],         
+              
+              
+         // 1. KAFKASYA /
+    ["Osmanlı İmparatorluğu", "Bakü", "Azerbaycan", "Hazar kıyısında kısa süreli kontrol edilen stratejik liman.", [40.37, 49.89]],  
+    ["Osmanlı İmparatorluğu", "Revan (Erivan)", "Ermenistan", "Kafkasya'da kısa süreli kontrol edilen stratejik merkez.", [40.17, 44.50]],
+
+    // 2. KAFKASYA / AZERBAYCAN
+    ["Osmanlı İmparatorluğu", "Tebriz", "İran", "Safevi sınırındaki kritik ticaret ve idari merkez (1590 Antlaşması).", [38.08, 46.29]],
+
+    // 3. KAFKASYA / GÜRCİSTAN
+    ["Osmanlı İmparatorluğu", "Tiflis", "Gürcistan", "Kuzeydoğu sınırlarına yakın önemli şehir (kısa süreli kontrol).", [41.71, 44.78]],
+
+    // 4. HAZAR DENİZİ / DAĞISTAN
+    ["Osmanlı İmparatorluğu", "Derbent", "Rusya Federasyonu (Dağıstan)", "Hazar Denizi kıyısındaki en kuzeydoğu kale (kısa süreli kontrol).", [42.06, 48.28]],
+
+    // 5. BASRA KÖRFEZİ / IRAK
+    ["Osmanlı İmparatorluğu", "Basra", "Irak", "İmparatorluğun Basra Körfezi'ne açılan kapısı ve deniz üssü.", [30.50, 47.82]],
+
+    // 6. BASRA KÖRFEZİ / SUUDİ ARABİSTAN (Doğu Bölgesi)
+    ["Osmanlı İmparatorluğu", "El-Katif", "Suudi Arabistan", "Körfez kıyısında Katar ve Bahreyn'e yakın önemli bir liman.", [26.56, 50.00]],
+
+    // 7. UKRAYNA / KUZEYBATI
+    ["Osmanlı İmparatorluğu", "Kamaniçe (Kamyanets-Podilski)", "Ukrayna", "Lehistan Seferi ile fethedilen en kuzeybatı kalelerinden biri.", [48.67, 26.58]],
+
+    // 8. KUZEY AFRİKA / CEZAYİR (Batı Uç)
+    ["Osmanlı İmparatorluğu", "Vahran (Oran)", "Cezayir", "Cezayir Beylerbeyliği'nin batısındaki önemli liman.", [35.69, -0.63]],
+
+    // 9. KUZEY AFRİKA / CEZAYİR (En Batı Nokta)
+    ["Osmanlı İmparatorluğu", "Tilimsan (Tlemcen)", "Cezayir", "Fas sınırına yakın, batıdaki siyasi etki/kontrol noktası.", [34.88, -1.31]],
+
+           // 1. ANADOLU/BAŞKENT
+    ["Osmanlı İmparatorluğu", "İstanbul", "Türkiye", "Merkez", [41.01, 28.96]],
+    
+    // 2. KUZEY (BATI AVRUPA'YA YÖNELİŞ)
+    ["Osmanlı İmparatorluğu", "Bender", "Moldova", "Doğu Avrupa'daki stratejik nokta", [46.82, 29.46]],
+    ["Osmanlı İmparatorluğu", "Budin (Budapeşte)", "Macaristan", "Kuzeybatıdaki en uç yayılım", [47.50, 19.04]],
+    ["Osmanlı İmparatorluğu", "Belgrad", "Sırbistan", "Avrupa'daki kilit nokta", [44.81, 20.46]],
+    
+    // 3. ADRIYATIK SINIRI (İtalya'yı Atlamak İçin Krıtik Noktalar)
+    // Poligonun İtalya'yı içe almaması için Hırvatistan/Arnavutluk kıyılarını takip ediyoruz
+   
+    ["Osmanlı İmparatorluğu", "Avlonya (Vlorë)", "Arnavutluk", "İtalya'nın çiziminin önüne geçmek için", [40.45, 19.48]], // EKLENDİ
+    ["Osmanlı İmparatorluğu", "Mora (Güney Yunanistan)", "Yunanistan", "Akdeniz'e çıkış", [36.80, 21.70]], // EKLENDİ
+    
+    // 4. KUZEY AFRİKA VE AKDENİZ (Güneybatı Sınırı)
+    ["Osmanlı İmparatorluğu", "Trablus", "Libya", "Orta Kuzey Afrika Kıyısı", [32.88, 13.19]],
+    ["Osmanlı İmparatorluğu", "TUNUS", "Tunus", "Batı Akdeniz hakimiyeti", [36.80, 10.18]],
+   
+    
+    
+    // 5. GÜNEY VE KIZILDENİZ SINIRI
+    // Poligonun Afrika'nın içlerine girmemesi için çöl sınırına yakın noktalar
+    ["Osmanlı İmparatorluğu", "Kahire", "Mısır", "Kuzey Afrika'daki hakimiyet merkezi", [30.04, 31.24]],
+    ["Osmanlı İmparatorluğu", "Mekke", "Suudi Arabistan", "Kabe'nin bulunduğu kutsal şehir.", [21.42, 39.82]],
+    ["Osmanlı İmparatorluğu", "San'a", "Yemen", "Güneydeki en uç yayılım (Yemen Eyaleti)", [15.36, 44.20]],
+    
+    // 6. DOĞU SINIRI
+    ["Osmanlı İmparatorluğu", "Bağdat", "Irak", "Doğudaki önemli Mezopotamya merkezi", [33.32, 44.36]],
+    ["Osmanlı İmparatorluğu", "Tebriz", "İran", "Doğudaki Safavi-Osmanlı rekabet alanı", [38.08, 46.29]],
+    
+    // 7. KUZEYDOĞU VE KARADENİZ
+    ["Osmanlı İmparatorluğu", "Astrahan", "Rusya", "Kuzeydeki Osmanlı-Kırım etki alanı", [46.35, 48.03]],
+    ["Osmanlı İmparatorluğu", "Azov (Don Nehri)", "Rusya", "Karadeniz'in kuzeydoğu ucu", [47.10, 39.40]],
+     // 2. KUZEY/BATI AVRUPA
+    ["Osmanlı İmparatorluğu", "Viyana", "Avusturya", "Avrupa'daki en batı askeri hedef", [48.21, 16.37]],
+    // 3. KUZEY/BATI AVRUPA
+    ["Osmanlı İmparatorluğu", "Budin (Budapeşte)", "Macaristan", "Orta Avrupa'daki Tuna hakimiyeti", [47.50, 19.04]],
+    // 4. KUZEY/DOĞU AVRUPA
+    ["Osmanlı İmparatorluğu", "Bender", "Moldova", "Doğu Avrupa'daki stratejik nokta", [46.82, 29.46]],
+    // 5. KUZEY/DOĞU AVRUPA
+    ["Osmanlı İmparatorluğu", "Kamaniçe (Podolya)", "Ukrayna", "Lehistan'daki en kuzey yönetim noktası", [48.68, 26.58]],
+    // 6. KUZEYDOĞU/KARADENİZ
+    ["Osmanlı İmparatorluğu", "Astrahan", "Rusya", "Kuzeydeki Osmanlı-Kırım etki alanı", [46.35, 48.03]],
+    // 7. KUZEYDOĞU/KARADENİZ
+    ["Osmanlı İmparatorluğu", "Azak (Don Nehri)", "Rusya", "Karadeniz'in kuzeydoğu ucu", [47.10, 39.40]],
+    // 8. DOĞU/KAFKASYA
+    ["Osmanlı İmparatorluğu", "Erivan (Revan)", "Ermenistan", "Kafkasya'daki önemli sınır kalesi", [40.18, 44.51]],
+    // 9. DOĞU/KAFKASYA
+    ["Osmanlı İmparatorluğu", "Tebriz", "İran", "Doğu'da (İran) kilit mücadele noktası", [38.08, 46.29]],
+    // 10. DOĞU/KÖRFEZ
+    ["Osmanlı İmparatorluğu", "Hufuf (Al-Ahsa)", "Suudi Arabistan", "Basra Körfezi'ndeki en doğu uzanım", [25.37, 49.57]],
+    // 11. GÜNEY/HİCAZ
+    ["Osmanlı İmparatorluğu", "Mekke", "Suudi Arabistan", "Kabe'nin bulunduğu kutsal şehir.", [21.42, 39.82]],
+    // 12. GÜNEY/YEMEN
+    ["Osmanlı İmparatorluğu", "San'a", "Yemen", "Güneydeki en uç yayılım (Yemen Eyaleti)", [15.36, 44.20]],
+    // 13. KUZEY AFRİKA/KIYI
+    ["Osmanlı İmparatorluğu", "Trablus", "Libya", "Orta Kuzey Afrika Kıyısı", [32.88, 13.19]],
+    // 14. KUZEY AFRİKA/KIYI
+    ["Osmanlı İmparatorluğu", "TUNUS", "Tunus", "Batı Akdeniz hakimiyeti", [36.80, 10.18]],
+    // 15. KUZEY AFRİKA/KIYI
+    ["Osmanlı İmparatorluğu", "Cezayir", "Cezayir", "Batıdaki önemli eyalet", [36.75, 3.06]],
+    // 16. KUZEY AFRİKA/KIYI
+    
+    // 17. ADRİYATİK SINIRI
+   
+    // 18. ADRİYATİK SINIRI
+    ["Osmanlı İmparatorluğu", "Avlonya (Vlorë)", "Arnavutluk", "Adriyatik/Otranto Boğazı kontrol noktası", [40.45, 19.48]],
+    // 19. AKDENİZ/YUNANİSTAN
+    ["Osmanlı İmparatorluğu", "Mora (Güney Yunanistan)", "Yunanistan", "Akdeniz'e çıkış ve deniz hakimiyeti", [36.80, 21.70]],
+    // 20. ANADOLU/BAŞKENT (Kapanış - Poligonu Kapatır)
+               ]
+          },
+avrupaHun: {
+    boundaryPoints: [
+        
+        ["Avrupa Hun İmparatorluğu", "Ren Nehri", "Almanya/Fransa", "Batıdaki en uç yayılım sınırı", [49.50, 7.00]], 
+        ["Avrupa Hun İmparatorluğu", "Lüneburg", "Almanya", "Kuzey Almanya'daki kuzeybatı yayılımı", [53.25, 10.40]],
+        ["Avrupa Hun İmparatorluğu", "Dinyeper Nehri", "Ukrayna", "Doğudaki Ostrogotları yendikleri ilk büyük sınır", [48.50, 32.00]],
+        ["Avrupa Hun İmparatorluğu", "Hazar Denizi'nin Kuzeyi", "Rusya", "Güneydoğudaki bozkır sınırına yakınlık", [46.00, 47.00]],
+        ["Avrupa Hun İmparatorluğu", "Konstantinopolis", "Türkiye", "Vergiye bağlanan Doğu Roma'ya karşı güneydoğu hedefi", [41.01, 28.98]],
+        ["Avrupa Hun İmparatorluğu", "Aquileia", "İtalya", "Attila'nın Batı Roma'yı tehdit ettiği Kuzey İtalya kenti", [45.82, 13.62]],
+    ],
+    allPoints: [
+        ["Avrupa Hun İmparatorluğu", "Katalon Tarlaları", "Fransa", "Hunların Batı Roma ve Vizigotlarla savaştığı meydan", [48.88, 4.35]], 
+        ["Avrupa Hun İmparatorluğu", "Roma", "İtalya", "Attila'nın ilerlemesinin durduğu nokta", [41.90, 12.50]], 
+        ["Avrupa Hun İmparatorluğu", "Singidunum (Belgrad)", "Sırbistan", "Tuna üzerindeki önemli Roma-Hun sınır kenti", [44.82, 20.46]],
+        ["Avrupa Hun İmparatorluğu", "Naissus (Niş)", "Sırbistan", "Doğu Roma'ya karşı zafer kazandığı şehir", [43.32, 21.89]],
+        ["Avrupa Hun İmparatorluğu", "Siscia (Sisak)", "Hırvatistan", "Balkanlarda önemli sınır noktası", [45.47, 16.37]], 
+["Avrupa Hun İmparatorluğu", "Carnuntum", "Avusturya", "Roma-Hun sınırında önemli kale", [48.11, 16.85]],
+        ["Avrupa Hun İmparatorluğu", "Budin (Buda)", "Macaristan", "İmparatorluğun ana merkezi/başkenti", [47.50, 19.04]], // Başkent eklendi
+        ["Avrupa Hun İmparatorluğu", "Ren Nehri", "Almanya/Fransa", "Batıdaki en uç yayılım sınırı", [49.50, 7.00]],
+        ["Avrupa Hun İmparatorluğu", "Lüneburg", "Almanya", "Kuzey Almanya'daki kuzeybatı yayılımı", [53.25, 10.40]],
+        ["Avrupa Hun İmparatorluğu", "Dinyeper Nehri", "Ukrayna", "Doğudaki Ostrogotları yendikleri ilk büyük sınır", [48.50, 32.00]],
+        ["Avrupa Hun İmparatorluğu", "Hazar Denizi'nin Kuzeyi", "Rusya", "Güneydoğudaki bozkır sınırına yakınlık", [46.00, 47.00]],
+        ["Avrupa Hun İmparatorluğu", "Konstantinopolis", "Türkiye", "Vergiye bağlanan Doğu Roma'ya karşı güneydoğu hedefi", [41.01, 28.98]],
+        ["Avrupa Hun İmparatorluğu", "Aquileia", "İtalya", "Batı Roma'yı tehdit ettiği Kuzey İtalya kenti", [45.82, 13.62]],
+        ["Avrupa Hun İmparatorluğu", "Sirmium", "Sırbistan", " Tuna üzerindeki kilit şehir", [44.97, 19.61]],
+        ["Avrupa Hun İmparatorluğu", "Olbia", "Ukrayna", "Karadeniz ticaret noktası", [46.68, 31.91]],
+    ]
+},
+          memluk: {
+    boundaryPoints: [
+        ["Memlük Devleti", "Kahire", "Mısır", "Başkent, yönetim ve ticaret merkezi", [31.75, 31.24]], // Başkent eklendi
+      
+      ["Memlük Devleti", "Ayn Calut", "Filistin", "Moğollara karşı kazanılan kritik zaferin yeri", [32.44, 34.5]],
+      ["Memlük Devleti", "Tarsus", "Türkiye", "Kilikya (Çukurova) kapısı ve Anadolu'nun güney girişi", [36.92, 34.89]],
+        ["Memlük Devleti", "Malatya", "Türkiye", "Anadolu Selçukluları ve Türkmenlere karşı kuzey sınırı", [38.35, 38.30]],
+        ["Memlük Devleti", "Fırat Nehri", "Suriye/Irak", "Doğudaki İlhanlılar ve diğer devletlere karşı sınır", [35.00, 40.00]],
+        ["Memlük Devleti", "Medine", "Suudi Arabistan", "Hicaz'ın kontrolü ve kutsal toprakların idaresi", [24.47, 39.61]],
+        ["Memlük Devleti", "Aden", "Yemen", "Hint Okyanusu ticaret yollarındaki en güney etki noktası", [12.80, 45.03]],
+        ["Memlük Devleti", "Kuzey Afrika Kıyısı (Libya)", "Libya", "Batıdaki siyasi etki alanı", [31.00, 24.00]],
+    ],
+    allPoints: [
+        ["Memlük Devleti", "Kahire", "Mısır", "Başkent, yönetim ve ticaret merkezi", [30.04, 31.24]], // Başkent eklendi
+        ["Memlük Devleti", "Halep", "Suriye", "Levant'ın kuzeydeki önemli ticaret kapısı", [36.20, 37.16]],
+        ["Memlük Devleti", "Ayn Calut", "Filistin", "Moğollara karşı kazanılan kritik zaferin yeri", [32.44, 35.34]],
+        ["Memlük Devleti", "Malatya", "Türkiye", "Anadolu Selçukluları ve Türkmenlere karşı kuzey sınırı", [38.35, 38.30]],
+        ["Memlük Devleti", "Fırat Nehri", "Suriye/Irak", "Doğudaki İlhanlılar ve diğer devletlere karşı sınır", [35.00, 40.00]],
+        ["Memlük Devleti", "Medine", "Suudi Arabistan", "Hicaz'ın kontrolü", [24.47, 39.61]],
+        ["Memlük Devleti", "Mekke", "Suudi Arabistan", "İslam'ın en kutsal şehri", [21.43, 39.83]],
+        ["Memlük Devleti", "Aden", "Yemen", "Hint Okyanusu ticaret yollarındaki en güney etki noktası", [12.80, 45.03]],
+        ["Memlük Devleti", "Kuzey Afrika Kıyısı (Libya)", "Libya", "Batıdaki siyasi etki alanı", [32.00, 24.00]],
+        ["Memlük Devleti", "Tarsus", "Türkiye", "Kilikya (Çukurova) kapısı ve Anadolu'nun güney girişi", [36.92, 34.89]],
+        ["Memlük Devleti", "Malatya (Kuzey Sınır)", "Türkiye", "Anadolu ve Fırat üzerindeki kuzeydoğu sınır kalesi", [38.35, 38.30]],
+        ["Memlük Devleti", "Mekke", "Suudi Arabistan", "İslam'ın en kutsal şehri ve Hac merkezi", [21.43, 39.83]],
+        ["Memlük Devleti", "Cidde", "Suudi Arabistan", "Mekke'nin limanı. Baharat ve hac yollarını kontrol eden kritik liman", [21.49, 39.23]],
+        
+    ]
+},
+          
+          hazar: {
+    boundaryPoints: [
+        
+        ["Hazar Kağanlığı", "Kiev", "Ukrayna", "Kuzeydeki Slav prensliklerine etki ve vasallık", [50.45, 30.52]],
+        ["Hazar Kağanlığı", "Don Nehri (Voronej yakınları)", "Rusya", "Kuzeybatıdaki en uzak sınır", [51.50, 39.20]],
+        ["Hazar Kağanlığı", "Ural Nehri", "Kazakistan", "Doğudaki Peçeneklere ve diğer topluluklara karşı sınır", [48.00, 58.00]],
+        ["Hazar Kağanlığı", "Derbent", "Rusya", "Kafkasya'daki en önemli stratejik güney geçidi", [42.06, 48.29]],
+        ["Hazar Kağanlığı", "Kırım (Kerç)", "Ukrayna", "Karadeniz ve deniz ticaretinin kontrol noktası", [45.35, 36.47]],
+    ],
+    allPoints: [
+        ["Hazar Kağanlığı", "İtil (Atıl)", "Rusya", "Başkent ve İdil Nehri üzerindeki ana ticaret merkezi", [46.33, 47.93]], // Başkent eklendi
+        ["Hazar Kağanlığı", "Sarkel (Belaya Veja)", "Rusya", "Don Nehri üzerindeki önemli kale", [47.50, 40.20]],
+        ["Hazar Kağanlığı", "Kiev", "Ukrayna", "Kuzeydeki Slav prensliklerine etki ve vasallık", [50.45, 30.52]],
+        ["Hazar Kağanlığı", "Don Nehri (Voronej yakınları)", "Rusya", "Kuzeybatıdaki en uzak sınır", [51.50, 39.20]],
+        ["Hazar Kağanlığı", "Ural Nehri", "Kazakistan", "Doğudaki Peçeneklere karşı sınır", [48.00, 58.00]],
+        ["Hazar Kağanlığı", "Derbent", "Rusya", "Kafkasya'daki en önemli stratejik güney geçidi", [42.06, 48.29]],
+        ["Hazar Kağanlığı", "Kırım (Kerç)", "Ukrayna", "Karadeniz ve deniz ticaretinin kontrol noktası", [45.35, 36.47]],
+        ["Hazar Kağanlığı", "Taman Yarımadası", "Rusya", "Kerç Boğazı ve Karadeniz kontrolü", [45.20, 36.70]],
+    ]
+},
+  
+           
+          
+          
+        };
+
+        let markers = [];
+        let polygonLayer = null;
+
+        function clearMarkers() {
+            markers.forEach(m => map.removeLayer(m));
+            markers = [];
+        }
+
+        function clearPolygon() {
+            if (polygonLayer) {
+                map.removeLayer(polygonLayer);
+                polygonLayer = null;
+            }
+        }
+
+        // Catmull-Rom spline ile yumuşatma fonksiyonu
+        function catmullRomSpline(points, numPoints) {
+            let splinePoints = [];
+
+            function interpolate(p0, p1, p2, p3, t) {
+                let t2 = t * t;
+                let t3 = t2 * t;
+
+                let x = 0.5 * ((2 * p1[0]) + (-p0[0] + p2[0]) * t +
+                    (2*p0[0] - 5*p1[0] + 4*p2[0] - p3[0]) * t2 +
+                    (-p0[0] + 3*p1[0] - 3*p2[0] + p3[0]) * t3);
+
+                let y = 0.5 * ((2 * p1[1]) + (-p0[1] + p2[1]) * t +
+                    (2*p0[1] - 5*p1[1] + 4*p2[1] - p3[1]) * t2 +
+                    (-p0[1] + 3*p1[1] - 3*p2[1] + p3[1]) * t3);
+
+                return [x, y];
+            }
+
+            for(let i=0; i < points.length; i++) {
+                let p0 = points[(i - 1 + points.length) % points.length];
+                let p1 = points[i];
+                let p2 = points[(i + 1) % points.length];
+                let p3 = points[(i + 2) % points.length];
+
+                for(let t=0; t < 1; t += 1/numPoints) {
+                    splinePoints.push(interpolate(p0, p1, p2, p3, t));
+                }
+            }
+
+            return splinePoints;
+        }
+
+        function addMarkersAndPolygon(devlet) {
+            clearMarkers();
+            clearPolygon();
+
+            const data = data_sinir_hatlari[devlet];
+            if(!data) return;
+
+            const bounds = [];
+
+            // Tüm noktalar için marker ekle
+            data.allPoints.forEach(([devletAd, sehir, ulke, aciklama, coords]) => {
+                const marker = L.marker(coords).addTo(map);
+                marker.bindPopup(
+                  `<b>${sehir}</b><br><i>${devletAd}</i><br>${ulke}<br>${aciklama}<br>Koordinat: ${coords[0].toFixed(2)}° N, ${coords[1].toFixed(2)}° E`
+                );
+                marker.on('click', () => {
+                    showWikiPage(sehir);
+                });
+                markers.push(marker);
+                bounds.push(coords);
+            });
+
+            // Sadece sınır noktaları ile poligon çiz
+            if(data.boundaryPoints.length >= 3) {
+                const coordsForPolygon = data.boundaryPoints.map(([devletAd, sehir, ulke, aciklama, coords]) => coords);
+
+                // Spline ile yumuşatma
+                const smoothCoords = catmullRomSpline(coordsForPolygon, 5);
+
+                polygonLayer = L.polygon(smoothCoords, {
+                    color: 'blue',
+                    weight: 2,
+                    fillColor: 'lightblue',
+                    fillOpacity: 0.3,
+                    smoothFactor: 1
+                }).addTo(map).bindPopup("Eğrisel Yayılım Alanı");
+            }
+
+            if(bounds.length > 0) {
+                map.fitBounds(bounds, {padding: [50, 50]});
+            }
+        }
+
+        function showWikiPage(cityName) {
+            const wikiPage = cityName.replace(/ /g, '_').replace(/\((.*?)\)/g, '').trim();
+            const wikiUrl = `https://tr.wikipedia.org/wiki/${encodeURIComponent(wikiPage)}`;
+            document.getElementById('wikiFrame').src = wikiUrl;
+        }
+
+        // İlk devlet yükle ve haritayı tüm işaretleri gösterecek şekilde ayarla (ilk yüklendiğinde Hunları göster)
+        addMarkersAndPolygon('buyukHun');
+document.getElementById('wikiFrame').src = "https://tr.wikipedia.org/w/index.php?search=Türkler";
+
+  
+       const devletLiderleri = {
+  buyukHun: "Mete_Han",
+  avrupaHun: "Attila",
+  gokturk: "Bumin_Kağan",
+  hazar: "Georgius Tzul",
+  uygur: "Kutlug Bilge Kül Kağan",
+  karahanli: "Satuk Buğra Han",
+  gazneli: "Gazneli Mahmut",
+  buyukSelcuklu: "Alp Arslan",
+  harzemsah: "Alâeddin Tekiş",
+  anadoluSelcuklu: "I. Alâeddin Keykubad",
+  memluk: "Baybars",
+  altinOrda: "Batu Han",
+  timur: "Timur",
+  babur: "Babür",
+  osmanli: "Osman_Gazi"
+};
+
+document.getElementById('devletSelect').addEventListener('change', e => {
+  const devletKey = e.target.value;
+  addMarkersAndPolygon(devletKey);
+
+  const lider = devletLiderleri[devletKey];
+  if (lider) {
+    document.getElementById('wikiFrame').src = `https://tr.wikipedia.org/wiki/${lider}`;
+  } else {
+    document.getElementById('wikiFrame').src = 'https://tr.wikipedia.org/wiki/Vikipedi:Ana_Sayfa';
+  }
+});
+    </script>
+</body>
+</html>
+    
+  </body>
+  
+</html>
